@@ -12,18 +12,6 @@ export async function simpleOnionRouter(nodeId: number) {
     res.send("live");
   });
 
-  const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", {
-    modulusLength: 2048,
-    publicKeyEncoding: {
-      type: "spki",
-      format: "pem",
-    },
-    privateKeyEncoding: {
-      type: "pkcs8",
-      format: "pem",
-    },
-  });
-
   let lastReceivedEncryptedMessage: string | null = null;
   let lastReceivedDecryptedMessage: string | null = null;
   let lastMessageDestination: number | null = null;
@@ -40,7 +28,21 @@ export async function simpleOnionRouter(nodeId: number) {
     res.json({ result: lastMessageDestination });
   });
 
-  onionRouter.get("/getPrivateKey", (req, res) => {
+onionRouter.get("/getPrivateKey", (req, res) => {
+    // Generating a pair of private and public keys
+    const { privateKey } = crypto.generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      publicKeyEncoding: {
+        type: "spki",
+        format: "pem",
+      },
+      privateKeyEncoding: {
+        type: "pkcs8",
+        format: "pem",
+      },
+    });
+
+    // Responding with the base64 version of the private key
     res.json({ result: privateKey.toString("base64") });
   });
 
