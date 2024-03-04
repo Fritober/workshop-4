@@ -18,28 +18,34 @@ export async function launchRegistry() {
   _registry.use(express.json());
   _registry.use(bodyParser.json());
 
+  const registeredNodes: Node[] = [];
+
+  _registry.post("/registerNode", (req: Request<{}, {}, RegisterNodeBody>, res: Response) => {
+    const { nodeId, pubKey } = req.body;
+
+    const existingNode = registeredNodes.find((node) => node.nodeId === nodeId);
+    if (existingNode) {
+      res.status(400).json({ error: `Node ${nodeId} is already registered.` });
+    } else {
+      // Register the new node
+      registeredNodes.push({ nodeId, pubKey });
+      res.json({ success: true });
+    }
+  });
+
+  _registry.get("/getNodeRegistry", (req, res) => {
+    const getNodeRegistryBody: GetNodeRegistryBody = {
+      nodes: registeredNodes,
+    };
+    res.json(getNodeRegistryBody);
+  });
+
   _registry.get("/status", (req, res) => {
     res.send("live");
   });
 
-  _registry.post("/registerNode", (req: Request<{}, {}, RegisterNodeBody>, res: Response<GetNodeRegistryBody>) => {
-    const { nodeId, pubKey } = req.body;
-
-
-    const existingNode = registeredNodes.find((node) => node.nodeId === nodeId);
-
-    if (existingNode) {
-      return res.status(400).json({ error: "Node already registered" });
-    }
-
-
-    registeredNodes.push({ nodeId, pubKey });
-
-    res.json({ nodes: registeredNodes });
-  });
-
   const server = _registry.listen(REGISTRY_PORT, () => {
-    console.log(`registry is listening on port ${REGISTRY_PORT}`);
+    console.log(`Registry is listening on port ${REGISTRY_PORT}`);
   });
 
   return server;
