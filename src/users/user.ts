@@ -29,11 +29,13 @@ function selectRandomNodes(nodes: any[], count: number) {
 }
 
 
-function selectRandomNodes(nodes: any[], count: number) {
-  let shuffled = nodes.sort(() => 0.5 - Math.random());
-  const selectedNodes = shuffled.slice(0, count);
-  console.log(`Selected nodes: ${selectedNodes.map(node => node.nodeId)}`);
-  return selectedNodes;
+async function forwardMessageToNode(node: { nodeId: number; }, message: string) {
+  console.log(`Forwarding message to node ${node.nodeId}: ${message}`);
+  await fetch(`http://localhost:${BASE_ONION_ROUTER_PORT + node.nodeId}/message`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  });
 }
 
 
