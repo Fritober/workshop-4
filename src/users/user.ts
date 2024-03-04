@@ -92,4 +92,3 @@ async function createRandomCircuit(destinationUserId: number): Promise<number[]>
   return circuit;
 }
 
-export default user;
