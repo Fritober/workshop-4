@@ -89,6 +89,6 @@ export async function user(userId: number) {
 async function createRandomCircuit(destinationUserId: number): Promise<number[]> {
   const availableNodes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   const circuit = availableNodes.filter(nodeId => nodeId !== destinationUserId).slice(0, 3);
-  return circuit.toString();
+  return circuit;
 }
 
