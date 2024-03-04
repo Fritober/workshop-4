@@ -22,6 +22,22 @@ export async function launchRegistry() {
     res.send("live");
   });
 
+  _registry.post("/registerNode", (req: Request<{}, {}, RegisterNodeBody>, res: Response<GetNodeRegistryBody>) => {
+    const { nodeId, pubKey } = req.body;
+
+
+    const existingNode = registeredNodes.find((node) => node.nodeId === nodeId);
+
+    if (existingNode) {
+      return res.status(400).json({ error: "Node already registered" });
+    }
+
+
+    registeredNodes.push({ nodeId, pubKey });
+
+    res.json({ nodes: registeredNodes });
+  });
+
   const server = _registry.listen(REGISTRY_PORT, () => {
     console.log(`registry is listening on port ${REGISTRY_PORT}`);
   });
