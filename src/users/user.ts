@@ -8,20 +8,6 @@ export type SendMessageBody = {
   destinationUserId: number;
 };
 
-async function fetchNodesFromRegistry() {
-  try {
-    const response = await fetch(`http://localhost:${REGISTRY_PORT}/getNodeRegistry`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch nodes from registry');
-    }
-    const data = await response.json();
-    return data.nodes; // Assuming the response structure has a 'nodes' property
-  } catch (error) {
-    console.error('Error fetching nodes from registry:', error);
-    throw error;
-  }
-}
-
 function selectRandomNodes(nodes: any[], count: number) {
   try {
     let shuffled = nodes.sort(() => 0.5 - Math.random());
@@ -75,7 +61,6 @@ export async function user(userId: number) {
     try {
       const { message, destinationUserId } = req.body as SendMessageBody;
 
-      const nodes = await fetchNodesFromRegistry();
       const circuit = selectRandomNodes(nodes, 3);
 
       let encryptedMessage = message;
