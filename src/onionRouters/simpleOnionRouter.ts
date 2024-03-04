@@ -16,6 +16,8 @@ export async function simpleOnionRouter(nodeId: number) {
     let lastReceivedDecryptedMessage: string | null = null;
     let lastMessageDestination: number | null = null;
 
+    let privateKey: CryptoKey;
+
     onionRouter.get("/getLastReceivedEncryptedMessage", (req, res) => {
         res.json({ result: lastReceivedEncryptedMessage });
     });
@@ -31,6 +33,8 @@ export async function simpleOnionRouter(nodeId: number) {
     const { publicKey, privateKey } = await generateRsaKeyPair();
     const pubKeyBase64 = await exportPubKey(publicKey);
     const prvKeyBase64 = await exportPrvKey(privateKey);
+
+    privateKey = await importPrvKey(prvKeyBase64);
 
     try {
         const response = await fetch(`http://localhost:${REGISTRY_PORT}/registerNode`, {
@@ -52,21 +56,19 @@ export async function simpleOnionRouter(nodeId: number) {
         res.json({ result: prvKeyBase64 });
     });
 
-    onionRouter.post("/message", async (req, res) => {
+     onionRouter.post("/message", async (req, res) => {
         try {
             const { message } = req.body;
             lastReceivedEncryptedMessage = message;
 
             const privateKeyBase64 = await exportPrvKey(privateKey);
-            const privateKey = await importPrvKey(privateKeyBase64);
-
             const decryptedMessage = await rsaDecrypt(message, privateKey);
             lastReceivedDecryptedMessage = decryptedMessage;
 
             const nextDestination = parseInt(decryptedMessage.slice(0, 10));
             const nestedMessage = decryptedMessage.slice(10);
             lastMessageDestination = nextDestination;
-            
+
             if (nextDestination >= BASE_ONION_ROUTER_PORT) {
                 const forwardUrl = `http://localhost:${nextDestination}/message`;
                 await fetch(forwardUrl, {
