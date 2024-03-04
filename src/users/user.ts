@@ -78,9 +78,10 @@ export async function fetchNodesFromRegistry(): Promise<any[]> {
     if (!response.ok) {
         throw new Error('Failed to fetch nodes from registry');
     }
-    const data: { nodes: any[] } = await response.json();
+    const data = await response.json() as { nodes: any[] };
     return data.nodes;
 }
+
 
 export async function forwardMessageToNode(node: { nodeId: number; }, message: string): Promise<void> {
     const forwardUrl = `http://localhost:${BASE_ONION_ROUTER_PORT + node.nodeId}/message`;
