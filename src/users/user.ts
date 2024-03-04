@@ -50,7 +50,7 @@ export async function user(userId: number) {
       const destination = circuit[i].toString().padStart(10, '0');
       const symmetricKeyStr = await exportSymKey(symmetricKeys[i]);
       const layer1 = await symEncrypt(encryptedMessage, symmetricKeyStr);
-      const layer2 = await rsaEncrypt(circuit[i], symmetricKeyStr);
+      const layer2 = await rsaEncrypt(symmetricKeyStr, circuit[i]);
       encryptedMessage = layer1 + layer2;
     }
 
@@ -87,7 +87,7 @@ export async function user(userId: number) {
 }
 
 async function createRandomCircuit(destinationUserId: number): Promise<number[]> {
-  const availableNodes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const availableNodes = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
   const circuit = availableNodes.filter(nodeId => nodeId !== destinationUserId).slice(0, 3);
   return circuit;
 }
