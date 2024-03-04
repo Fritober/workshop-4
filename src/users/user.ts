@@ -8,28 +8,6 @@ export type SendMessageBody = {
   destinationUserId: number;
 };
 
-function selectRandomNodes(nodes: any[], count: number) {
-  try {
-    let shuffled = nodes.sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
-  } catch (error) {
-    console.error('Error selecting random nodes:', error);
-    throw error;
-  }
-}
-
-async function forwardMessageToNode(node: { nodeId: number }, message: string) {
-  try {
-    await fetch(`http://localhost:${BASE_ONION_ROUTER_PORT + node.nodeId}/message`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
-    });
-  } catch (error) {
-    console.error(`Error forwarding message to node ${node.nodeId}:`, error);
-    throw error;
-  }
-}
 
 export async function user(userId: number) {
   const _user = express();
