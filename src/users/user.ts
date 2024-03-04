@@ -1,7 +1,7 @@
 import bodyParser from "body-parser";
 import express from "express";
 import { BASE_USER_PORT, BASE_ONION_ROUTER_PORT } from "../config";
-import { generateSymmetricKey, rsaEncrypt, encryptWithSymmetricKey } from "../crypto";
+import { createRandomSymmetricKey, exportSymKey, rsaEncrypt, symEncrypt } from "../crypto";
 
 export type SendMessageBody = {
   message: string;
@@ -38,11 +38,11 @@ export async function user(userId: number) {
     try {
       const { message, destinationUserId } = req.body;
       const circuit = await createRandomCircuit(destinationUserId);
-      const symmetricKeys = circuit.map(() => generateSymmetricKey());
+      const symmetricKeys = circuit.map(() => createRandomSymmetricKey());
       let encryptedMessage = message;
       for (let i = 0; i < circuit.length; i++) {
         const destination = circuit[i].toString().padStart(10, '0');
-        const layer1 = await encryptWithSymmetricKey(encryptedMessage, symmetricKeys[i]);
+        const layer1 = await symEncrypt(encryptedMessage, symmetricKeys[i]);
         const layer2 = await rsaEncrypt(symmetricKeys[i], circuit[i]);
         encryptedMessage = layer1 + layer2;
       }
