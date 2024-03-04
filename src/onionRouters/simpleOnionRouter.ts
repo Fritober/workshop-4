@@ -33,8 +33,6 @@ export async function simpleOnionRouter(nodeId: number) {
     const pubKeyBase64 = await exportPubKey(publicKey);
     const prvKeyBase64 = await exportPrvKey(privateKey);
 
-    privateKey = await importPrvKey(prvKeyBase64);
-
     try {
         const response = await fetch(`http://localhost:${REGISTRY_PORT}/registerNode`, {
             method: 'POST',
