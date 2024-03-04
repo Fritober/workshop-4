@@ -28,24 +28,6 @@ export async function simpleOnionRouter(nodeId: number) {
     res.json({ result: lastMessageDestination });
   });
 
-onionRouter.get("/getPrivateKey", (req, res) => {
-    // Generating a pair of private and public keys
-    const { privateKey } = crypto.generateKeyPairSync("rsa", {
-      modulusLength: 2048,
-      publicKeyEncoding: {
-        type: "spki",
-        format: "pem",
-      },
-      privateKeyEncoding: {
-        type: "pkcs8",
-        format: "pem",
-      },
-    });
-
-    // Responding with the base64 version of the private key
-    res.json({ result: privateKey.toString("base64") });
-  });
-
   const server = onionRouter.listen(BASE_ONION_ROUTER_PORT + nodeId, () => {
     console.log(
       `Onion router ${nodeId} is listening on port ${
