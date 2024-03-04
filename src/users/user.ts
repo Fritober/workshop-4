@@ -23,16 +23,19 @@ async function fetchNodesFromRegistry() {
 
 function selectRandomNodes(nodes: any[], count: number) {
   let shuffled = nodes.sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
+  const selectedNodes = shuffled.slice(0, count);
+  console.log(`Selected nodes: ${selectedNodes.map(node => node.nodeId)}`);
+  return selectedNodes;
 }
 
-async function forwardMessageToNode(node: { nodeId: number; }, message: string) {
-  await fetch(`http://localhost:${BASE_ONION_ROUTER_PORT + node.nodeId}/message`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
-  });
+
+function selectRandomNodes(nodes: any[], count: number) {
+  let shuffled = nodes.sort(() => 0.5 - Math.random());
+  const selectedNodes = shuffled.slice(0, count);
+  console.log(`Selected nodes: ${selectedNodes.map(node => node.nodeId)}`);
+  return selectedNodes;
 }
+
 
 export async function user(userId: number) {
   const _user = express();
