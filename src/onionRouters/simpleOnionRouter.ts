@@ -40,6 +40,10 @@ export async function simpleOnionRouter(nodeId: number) {
     res.json({ result: lastMessageDestination });
   });
 
+  onionRouter.get("/getPrivateKey", (req, res) => {
+    res.json({ result: privateKey.toString("base64") });
+  });
+
   const server = onionRouter.listen(BASE_ONION_ROUTER_PORT + nodeId, () => {
     console.log(
       `Onion router ${nodeId} is listening on port ${
