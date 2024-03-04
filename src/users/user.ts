@@ -34,41 +34,6 @@ export async function user(userId: number) {
     res.status(200).send("success");
   });
 
-  _user.post('/sendMessage', async (req, res) => {
-  try {
-    const { message, destinationUserId } = req.body;
-    const circuit = await createRandomCircuit(destinationUserId);
-    const symmetricKeys = await Promise.all(circuit.map(() => createRandomSymmetricKey()));
-    let encryptedMessage = message;
-    for (let i = 0; i < circuit.length; i++) {
-      const destination = circuit[i].toString().padStart(10, '0');
-      const symmetricKeyStr = await exportSymKey(symmetricKeys[i]);
-      const layer1 = await symEncrypt(symmetricKeyStr, encryptedMessage);
-      const layer2 = await rsaEncrypt(symmetricKeyStr, circuit[i]);
-      encryptedMessage = layer1 + layer2;
-    }
-    
-    const entryNodeUrl = `http://localhost:${BASE_ONION_ROUTER_PORT + circuit[0]}/message`;
-    const response = await fetch(entryNodeUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: encryptedMessage }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to send message to user ${destinationUserId}. Status: ${response.status}`);
-    }
-
-    lastSentMessage = message;
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error sending message:', error);
-    res.status(500).json({ success: false, error: 'Internal Server Error' });
-  }
-});
-
-
   const server = _user.listen(BASE_USER_PORT + userId, () => {
     console.log(
       `User ${userId} is listening on port ${BASE_USER_PORT + userId}`
@@ -78,9 +43,4 @@ export async function user(userId: number) {
   return server;
 }
 
-async function createRandomCircuit(destinationUserId: number): Promise<number[]> {
-  const availableNodes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-  const circuit = availableNodes.filter(nodeId => nodeId !== destinationUserId).slice(0, 3);
-  return circuit;
-}
 
