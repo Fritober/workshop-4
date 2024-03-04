@@ -37,27 +37,17 @@ export async function user(userId: number) {
   _user.post('/sendMessage', async (req, res) => {
   try {
     const { message, destinationUserId } = req.body;
-
-    // Create a random circuit of 3 distinct nodes
     const circuit = await createRandomCircuit(destinationUserId);
-
-    // Create a unique symmetric key for each node of the circuit
     const symmetricKeys = await Promise.all(circuit.map(() => createRandomSymmetricKey()));
-
-    // Encrypt the message with each layer of encryption
     let encryptedMessage = message;
     for (let i = 0; i < circuit.length; i++) {
       const destination = circuit[i].toString().padStart(10, '0');
-  
       const symmetricKeyStr = await exportSymKey(symmetricKeys[i]);
-      const rsaPublicKey = await fetchRSAPublicKey(circuit[i]);
       const layer1 = await symEncrypt(symmetricKeyStr, encryptedMessage);
-      const layer2 = await rsaEncrypt(rsaPublicKey, symmetricKeyStr);
+      const layer2 = await rsaEncrypt(symmetricKeyStr, circuit[i]);
       encryptedMessage = layer1 + layer2;
     }
-
-
-    // Forward the encrypted message to the entry node's HTTP POST /message route
+    
     const entryNodeUrl = `http://localhost:${BASE_ONION_ROUTER_PORT + circuit[0]}/message`;
     const response = await fetch(entryNodeUrl, {
       method: 'POST',
@@ -69,7 +59,6 @@ export async function user(userId: number) {
       throw new Error(`Failed to send message to user ${destinationUserId}. Status: ${response.status}`);
     }
 
-    // Update the last sent message on success
     lastSentMessage = message;
 
     res.json({ success: true });
