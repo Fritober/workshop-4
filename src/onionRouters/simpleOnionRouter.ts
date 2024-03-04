@@ -53,7 +53,7 @@ export async function simpleOnionRouter(nodeId: number) {
         res.json({ result: prvKeyBase64 });
     });
 
-     onionRouter.post("/message", async (req, res) => {
+    onionRouter.post("/message", async (req, res) => {
         try {
             const { message } = req.body;
             lastReceivedEncryptedMessage = message;
