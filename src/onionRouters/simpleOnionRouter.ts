@@ -8,13 +8,13 @@ export async function simpleOnionRouter(nodeId: number) {
     onionRouter.use(express.json());
     onionRouter.use(bodyParser.json());
 
-    onionRouter.get("/status", (req, res) => {
-        res.send("live");
-    });
-
     let lastReceivedEncryptedMessage: string | null = null;
     let lastReceivedDecryptedMessage: string | null = null;
     let lastMessageDestination: number | null = null;
+
+    onionRouter.get("/status", (req, res) => {
+        res.send("live");
+    });
 
     onionRouter.get("/getLastReceivedEncryptedMessage", (req, res) => {
         res.json({ result: lastReceivedEncryptedMessage });
@@ -28,26 +28,35 @@ export async function simpleOnionRouter(nodeId: number) {
         res.json({ result: lastMessageDestination });
     });
 
-    // Register the node upon startup
-    const { publicKey, privateKey } = await generateRsaKeyPair();
-    const pubKeyBase64 = await exportPubKey(publicKey);
-    const prvKeyBase64 = await exportPrvKey(privateKey);
+    onionRouter.post("/message", async (req, res) => {
+        const { message } = req.body;
+        lastReceivedEncryptedMessage = message;
 
-    try {
-        const response = await fetch(`http://localhost:${REGISTRY_PORT}/registerNode`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nodeId, pubKey: pubKeyBase64 }),
-        });
+        const privateKeyBase64 = nodePrivateKeys.get(nodeId);
+        if (!privateKeyBase64) {
+            return res.status(500).send("Node's private key not found.");
+        }
+        const privateKey = await importPrvKey(privateKeyBase64);
 
-        if (!response.ok) {
-            throw new Error(`Failed to register node ${nodeId}. Status: ${response.status}`);
+        const decryptedMessage = await rsaDecrypt(message, privateKey);
+        lastReceivedDecryptedMessage = decryptedMessage;
+
+        const nextDestination = parseInt(decryptedMessage.slice(0, 10));
+        const nestedMessage = decryptedMessage.slice(10);
+        lastMessageDestination = nextDestination.toString();
+
+        // Forward the message if not the final destination
+        if (nextDestination >= BASE_ONION_ROUTER_PORT) {
+            const forwardUrl = `http://localhost:${nextDestination}/message`;
+            await fetch(forwardUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: nestedMessage }),
+            });
         }
 
-        console.log(`Node ${nodeId} registered successfully.`);
-    } catch (error) {
-        console.error(`Error registering node ${nodeId}:`, error);
-    }
+        res.send("Message forwarded.");
+    });
 
     onionRouter.get("/getPrivateKey", async (req, res) => {
         res.json({ result: prvKeyBase64 });
