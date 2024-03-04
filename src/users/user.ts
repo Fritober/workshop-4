@@ -48,11 +48,14 @@ export async function user(userId: number) {
     let encryptedMessage = message;
     for (let i = 0; i < circuit.length; i++) {
       const destination = circuit[i].toString().padStart(10, '0');
+  
       const symmetricKeyStr = await exportSymKey(symmetricKeys[i]);
-      const layer1 = await symEncrypt(encryptedMessage, symmetricKeyStr);
-      const layer2 = await rsaEncrypt(symmetricKeyStr, circuit[i]);
+      const rsaPublicKey = await fetchRSAPublicKey(circuit[i]);
+      const layer1 = await symEncrypt(symmetricKeyStr, encryptedMessage);
+      const layer2 = await rsaEncrypt(rsaPublicKey, symmetricKeyStr);
       encryptedMessage = layer1 + layer2;
     }
+
 
     // Forward the encrypted message to the entry node's HTTP POST /message route
     const entryNodeUrl = `http://localhost:${BASE_ONION_ROUTER_PORT + circuit[0]}/message`;
