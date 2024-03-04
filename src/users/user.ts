@@ -48,7 +48,7 @@ export async function user(userId: number) {
     let encryptedMessage = message;
     for (let i = 0; i < circuit.length; i++) {
       const destination = circuit[i].toString().padStart(10, '0');
-      const symmetricKey = await symmetricKeys[i];
+      const symmetricKeyStr = await exportSymKey(symmetricKeys[i]);
       const layer1 = await symEncrypt(encryptedMessage, symmetricKey);
       const layer2 = await rsaEncrypt(symmetricKey, circuit[i]);
       encryptedMessage = layer1 + layer2;
