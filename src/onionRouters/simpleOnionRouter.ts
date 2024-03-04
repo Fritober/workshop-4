@@ -3,14 +3,36 @@ import express from "express";
 import { BASE_ONION_ROUTER_PORT, REGISTRY_PORT } from "../config";
 import { generateRsaKeyPair, exportPubKey, importPrvKey, rsaDecrypt, exportPrvKey } from "../crypto";
 
+const nodePrivateKeys = new Map<number, string>();
+
+async function registerNode(nodeId: number) {
+    const { publicKey, privateKey } = await generateRsaKeyPair();
+    const pubKeyBase64 = await exportPubKey(publicKey);
+    const prvKeyBase64 = await exportPrvKey(privateKey);
+
+    nodePrivateKeys.set(nodeId, prvKeyBase64);
+
+    try {
+        const response = await fetch(`http://localhost:${REGISTRY_PORT}/registerNode`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nodeId, pubKey: pubKeyBase64 }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to register node ${nodeId}. Status: ${response.status}`);
+        }
+
+        console.log(`Node ${nodeId} registered successfully.`);
+    } catch (error) {
+        console.error(`Error registering node ${nodeId}:`, error);
+    }
+}
+
 export async function simpleOnionRouter(nodeId: number) {
     const onionRouter = express();
     onionRouter.use(express.json());
     onionRouter.use(bodyParser.json());
-
-    let lastReceivedEncryptedMessage: string | null = null;
-    let lastReceivedDecryptedMessage: string | null = null;
-    let lastMessageDestination: number | null = null;
 
     onionRouter.get("/status", (req, res) => {
         res.send("live");
@@ -28,58 +50,62 @@ export async function simpleOnionRouter(nodeId: number) {
         res.json({ result: lastMessageDestination });
     });
 
+    // Register the node upon startup
+    await registerNode(nodeId);
+
     onionRouter.post("/message", async (req, res) => {
-        const { message } = req.body;
-        lastReceivedEncryptedMessage = message;
-
-        const privateKeyBase64 = nodePrivateKeys.get(nodeId);
-        if (!privateKeyBase64) {
-            return res.status(500).send("Node's private key not found.");
-        }
-        const privateKey = await importPrvKey(privateKeyBase64);
-
-        const decryptedMessage = await rsaDecrypt(message, privateKey);
-        lastReceivedDecryptedMessage = decryptedMessage;
-
-        const nextDestination = parseInt(decryptedMessage.slice(0, 10));
-        const nestedMessage = decryptedMessage.slice(10);
-        lastMessageDestination = nextDestination.toString();
-
-        // Forward the message if not the final destination
-        if (nextDestination >= BASE_ONION_ROUTER_PORT) {
-            const forwardUrl = `http://localhost:${nextDestination}/message`;
-            await fetch(forwardUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: nestedMessage }),
-            });
-        }
-
-        res.send("Message forwarded.");
-    });
-
-    onionRouter.get("/getPrivateKey", async (req, res) => {
-        res.json({ result: prvKeyBase64 });
-    });
-
-    onionRouter.get("/getNodeRegistry", async (req, res) => {
         try {
-            const response = await fetch(`http://localhost:${REGISTRY_PORT}/getNodeRegistry`);
-            if (!response.ok) {
-                throw new Error(`Failed to retrieve node registry. Status: ${response.status}`);
+            const { message } = req.body;
+            lastReceivedEncryptedMessage = message;
+
+            const privateKeyBase64 = nodePrivateKeys.get(nodeId);
+            if (!privateKeyBase64) {
+                return res.status(500).send("Node's private key not found.");
+            }
+            const privateKey = await importPrvKey(privateKeyBase64);
+
+            const decryptedMessage = await rsaDecrypt(message, privateKey);
+            lastReceivedDecryptedMessage = decryptedMessage;
+
+            const nextDestination = parseInt(decryptedMessage.slice(0, 10), 10);
+            lastMessageDestination = nextDestination.toString();
+
+            if (nextDestination >= BASE_ONION_ROUTER_PORT) {
+                const forwardUrl = `http://localhost:${nextDestination}/message`;
+                await fetch(forwardUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: decryptedMessage.slice(10) }),
+                });
             }
 
-            const registry = await response.json();
-            res.json(registry);
+            res.send("Message forwarded.");
         } catch (error) {
-            console.error("Error retrieving node registry:", error);
-            res.status(500).json({ error: "Internal Server Error" });
+            console.error("Error handling message:", error);
+            res.status(500).send("Internal Server Error");
         }
     });
 
-    const server = onionRouter.listen(BASE_ONION_ROUTER_PORT + nodeId, () => {
-        console.log(`Onion router ${nodeId} is listening on port ${BASE_ONION_ROUTER_PORT + nodeId}`);
+    onionRouter.get("/getPrivateKey", (req, res) => {
+        const nodeIdParam = req.query.nodeId;
+        if (nodeIdParam === undefined || typeof nodeIdParam !== 'string') {
+            return res.status(400).send("Node ID is required");
+        }
+
+        const nodeId = parseInt(nodeIdParam, 10);
+        if (isNaN(nodeId)) {
+            return res.status(400).send("Invalid Node ID");
+        }
+
+        const privateKey = nodePrivateKeys.get(nodeId);
+        if (!privateKey) {
+            return res.status(404).send("Node's private key not found.");
+        }
+
+        res.json({ result: privateKey });
     });
 
-    return server;
+    return onionRouter.listen(BASE_ONION_ROUTER_PORT + nodeId, () => {
+        console.log(`Onion router ${nodeId} is listening on port ${BASE_ONION_ROUTER_PORT + nodeId}`);
+    });
 }
