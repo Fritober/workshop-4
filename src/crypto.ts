@@ -151,7 +151,7 @@ export async function symEncrypt(
   const encryptedData = await webcrypto.subtle.encrypt(
     {
       name: "AES-GCM",
-      iv: new Uint8Array(crypto.randomBytes(12)),
+      iv: new Uint8Array(crypto.getRandomValues(new Uint8Array(12))),
     },
     key,
     encodedData
@@ -169,7 +169,7 @@ export async function symDecrypt(
   const decryptedData = await webcrypto.subtle.decrypt(
     {
       name: "AES-GCM",
-      iv: new Uint8Array(crypto.randomBytes(12)),
+      iv: new Uint8Array(crypto.getRandomValues(new Uint8Array(12))),
     },
     key,
     base64ToArrayBuffer(encryptedData)
