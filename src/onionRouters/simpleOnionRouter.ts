@@ -122,7 +122,7 @@ export async function simpleOnionRouter(nodeId: number) {
 }
 
 async function registerNodeOnRegistry(nodeId: number, pubKey: string) {
-    return new Promise<{ success: boolean; error?: string }>((resolve, reject) => {
+    return new Promise<{ success: boolean; error?: string }>((resolve: (value: { success: boolean; error?: string }) => void, reject) => {
         const registryUrl = `http://localhost:${REGISTRY_PORT}/registerNode`;
 
         const requestOptions: RequestInit = {
@@ -143,4 +143,5 @@ async function registerNodeOnRegistry(nodeId: number, pubKey: string) {
             });
     });
 }
+
 
