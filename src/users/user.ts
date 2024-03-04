@@ -2,7 +2,6 @@ import bodyParser from "body-parser";
 import express from "express";
 import { BASE_USER_PORT, BASE_ONION_ROUTER_PORT, REGISTRY_PORT } from "../config";
 import { createRandomSymmetricKey, exportSymKey, rsaEncrypt, symEncrypt } from "../crypto";
-import fetch from 'node-fetch';
 
 export type SendMessageBody = {
   message: string;
@@ -75,20 +74,25 @@ export async function user(userId: number) {
 }
 
 export async function fetchNodesFromRegistry(): Promise<any[]> {
-  const response = await fetch(`http://localhost:${REGISTRY_PORT}/getNodeRegistry`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch nodes from registry');
-  }
-  const data = await response.json();
-  return data.nodes;
+    const response = await fetch(`http://localhost:${REGISTRY_PORT}/getNodeRegistry`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch nodes from registry');
+    }
+    const data = await response.json();
+    return data.nodes;
 }
 
 export async function forwardMessageToNode(node: { nodeId: number; }, message: string): Promise<void> {
-  await fetch(`http://localhost:${BASE_ONION_ROUTER_PORT + node.nodeId}/message`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message }),
-  });
+    const forwardUrl = `http://localhost:${BASE_ONION_ROUTER_PORT + node.nodeId}/message`;
+    const response = await fetch(forwardUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to forward message to node ${node.nodeId}. Status: ${response.status}`);
+    }
 }
 
 function selectRandomNodes(nodes: any[], count: number) {
