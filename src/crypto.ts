@@ -1,5 +1,4 @@
 import { webcrypto } from "crypto";
-import crypto from "crypto";
 
 // #############
 // ### Utils ###
@@ -12,7 +11,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 
 // Function to convert Base64 string to ArrayBuffer
 function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const buff = Buffer.from(base64, "base64");
+  var buff = Buffer.from(base64, "base64");
   return buff.buffer.slice(buff.byteOffset, buff.byteOffset + buff.byteLength);
 }
 
@@ -21,11 +20,10 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 // ################
 
 // Generates a pair of private / public RSA keys
-type GenerateRsaKeyPair = {
+export async function generateRsaKeyPair(): Promise<{
   publicKey: webcrypto.CryptoKey;
   privateKey: webcrypto.CryptoKey;
-};
-export async function generateRsaKeyPair(): Promise<GenerateRsaKeyPair> {
+}> {
   const { publicKey, privateKey } = await webcrypto.subtle.generateKey(
     {
       name: "RSA-OAEP",
@@ -153,38 +151,6 @@ export async function symEncrypt(
   const encryptedData = await webcrypto.subtle.encrypt(
     {
       name: "AES-GCM",
-      iv: crypto.getRandomValues(new Uint8Array(12)),
-    },
-    key,
-    encodedData
-  );
-
-  return arrayBufferToBase64(encryptedData);
-}
-
-// Decrypt a message using a symmetric key
-export async function symDecrypt(
-  strKey: string,
-  encryptedData: string
-): Promise<string> {
-  const key = await importSymKey(strKey);
-  const decryptedData = await webcrypto.subtle.decrypt(
-    {
-      name: "AES-GCM",
-      iv: crypto.getRandomValues(new Uint8Array(12)),
-    },
-    key,
-    base64ToArrayBuffer(encryptedData)
-  );
-
-export async function symEncrypt(
-  key: webcrypto.CryptoKey,
-  data: string
-): Promise<string> {
-  const encodedData = new TextEncoder().encode(data);
-  const encryptedData = await webcrypto.subtle.encrypt(
-    {
-      name: "AES-GCM",
       iv: new Uint8Array(crypto.randomBytes(12)),
     },
     key,
@@ -208,9 +174,6 @@ export async function symDecrypt(
     key,
     base64ToArrayBuffer(encryptedData)
   );
-
-  return new TextDecoder().decode(decryptedData);
-}
 
   return new TextDecoder().decode(decryptedData);
 }
