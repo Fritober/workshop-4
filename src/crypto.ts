@@ -1,4 +1,5 @@
 import { webcrypto } from "crypto";
+import * as crypto from "crypto";
 
 // #############
 // ### Utils ###
