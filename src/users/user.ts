@@ -78,7 +78,7 @@ export async function fetchNodesFromRegistry(): Promise<any[]> {
     if (!response.ok) {
         throw new Error('Failed to fetch nodes from registry');
     }
-    const data = await response.json();
+    const data: { nodes: any[] } = await response.json();
     return data.nodes;
 }
 
