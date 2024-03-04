@@ -16,7 +16,6 @@ export async function simpleOnionRouter(nodeId: number) {
     let lastReceivedDecryptedMessage: string | null = null;
     let lastMessageDestination: number | null = null;
 
-    let privateKey: CryptoKey;
 
     onionRouter.get("/getLastReceivedEncryptedMessage", (req, res) => {
         res.json({ result: lastReceivedEncryptedMessage });
