@@ -1,4 +1,5 @@
 import { webcrypto } from "crypto";
+import crypto from "crypto";
 
 // #############
 // ### Utils ###
@@ -175,6 +176,41 @@ export async function symDecrypt(
     key,
     base64ToArrayBuffer(encryptedData)
   );
+
+export async function symEncrypt(
+  key: webcrypto.CryptoKey,
+  data: string
+): Promise<string> {
+  const encodedData = new TextEncoder().encode(data);
+  const encryptedData = await webcrypto.subtle.encrypt(
+    {
+      name: "AES-GCM",
+      iv: new Uint8Array(crypto.randomBytes(12)),
+    },
+    key,
+    encodedData
+  );
+
+  return arrayBufferToBase64(encryptedData);
+}
+
+// Decrypt a message using a symmetric key
+export async function symDecrypt(
+  strKey: string,
+  encryptedData: string
+): Promise<string> {
+  const key = await importSymKey(strKey);
+  const decryptedData = await webcrypto.subtle.decrypt(
+    {
+      name: "AES-GCM",
+      iv: new Uint8Array(crypto.randomBytes(12)),
+    },
+    key,
+    base64ToArrayBuffer(encryptedData)
+  );
+
+  return new TextDecoder().decode(decryptedData);
+}
 
   return new TextDecoder().decode(decryptedData);
 }
