@@ -1,6 +1,6 @@
 import bodyParser from "body-parser";
 import express from "express";
-import { BASE_USER_PORT, BASE_ONION_ROUTER_PORT } from "../config";
+import { BASE_USER_PORT, BASE_ONION_ROUTER_PORT, REGISTRY_PORT } from "../config";
 import { createRandomSymmetricKey, exportSymKey, rsaEncrypt, symEncrypt } from "../crypto";
 
 export type SendMessageBody = {
