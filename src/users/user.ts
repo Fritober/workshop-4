@@ -38,10 +38,11 @@ export async function user(userId: number) {
   });
 
   _user.post('/message', (req, res) => {
-    const { message } = req.body;
-    lastReceivedMessage = message;
-    res.status(200).send('success');
-  });
+  const { message } = req.body;
+  lastReceivedMessage = message;
+  console.log(`Received message: ${lastReceivedMessage}`);
+  res.status(200).send('success');
+});
 
   _user.post('/sendMessage', async (req, res) => {
     const { message, destinationUserId } = req.body as SendMessageBody;
