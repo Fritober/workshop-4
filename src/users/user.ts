@@ -27,6 +27,12 @@ export async function user(userId: number) {
     res.json({ result: lastSentMessage });
   });
 
+    _user.post('/message', (req, res) => {
+    const { message } = req.body;
+    lastReceivedMessage = message;
+    res.status(200).send("success");
+  });
+
   const server = _user.listen(BASE_USER_PORT + userId, () => {
     console.log(
       `User ${userId} is listening on port ${BASE_USER_PORT + userId}`
