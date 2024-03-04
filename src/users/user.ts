@@ -56,36 +56,6 @@ export async function user(userId: number) {
     lastReceivedMessage = message;
     res.status(200).send("success");
   });
-
-  _user.post('/sendMessage', async (req, res) => {
-    try {
-      const { message, destinationUserId } = req.body as SendMessageBody;
-
-      const circuit = selectRandomNodes(nodes, 3);
-
-      let encryptedMessage = message;
-      let destination = destinationUserId.toString().padStart(10, '0');
-
-      for (let i = circuit.length - 1; i >= 0; i--) {
-        const node = circuit[i];
-        const symKey = await createRandomSymmetricKey();
-
-        encryptedMessage = await symEncrypt(symKey, `${destination}${encryptedMessage}`);
-        const encryptedSymKey = await rsaEncrypt(await exportSymKey(symKey), node.pubKey);
-        encryptedMessage = `${encryptedSymKey}${encryptedMessage}`;
-
-        destination = (BASE_ONION_ROUTER_PORT + (i > 0 ? circuit[i - 1].nodeId : destinationUserId)).toString().padStart(10, '0');
-      }
-
-      await forwardMessageToNode(circuit[0], encryptedMessage);
-      lastSentMessage = message;
-
-      res.status(200).send({ message: 'Message sent successfully through the network.' });
-    } catch (error) {
-      console.error('Error in /sendMessage route:', error);
-      res.status(500).send({ error: 'Failed to send message through the network.' });
-    }
-  });
   
   const server = _user.listen(BASE_USER_PORT + userId, () => {
     console.log(
