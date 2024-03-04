@@ -52,6 +52,37 @@ export async function simpleOnionRouter(nodeId: number) {
         res.json({ result: prvKeyBase64 });
     });
 
+    onionRouter.post("/message", async (req, res) => {
+        try {
+            const { message } = req.body;
+            lastReceivedEncryptedMessage = message;
+
+            const privateKeyBase64 = await exportPrvKey(privateKey);
+            const privateKey = await importPrvKey(privateKeyBase64);
+
+            const decryptedMessage = await rsaDecrypt(message, privateKey);
+            lastReceivedDecryptedMessage = decryptedMessage;
+
+            const nextDestination = parseInt(decryptedMessage.slice(0, 10));
+            const nestedMessage = decryptedMessage.slice(10);
+            lastMessageDestination = nextDestination;
+            
+            if (nextDestination >= BASE_ONION_ROUTER_PORT) {
+                const forwardUrl = `http://localhost:${nextDestination}/message`;
+                await fetch(forwardUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: nestedMessage }),
+                });
+            }
+
+            res.send("Message forwarded.");
+        } catch (error) {
+            console.error("Error processing message:", error);
+            res.status(500).json({ error: "Internal Server Error" });
+        }
+    });
+
     onionRouter.get("/getNodeRegistry", async (req, res) => {
         try {
             const response = await fetch(`http://localhost:${REGISTRY_PORT}/getNodeRegistry`);
