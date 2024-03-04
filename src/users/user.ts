@@ -8,6 +8,43 @@ export type SendMessageBody = {
   destinationUserId: number;
 };
 
+async function fetchNodesFromRegistry() {
+  try {
+    const response = await fetch(`http://localhost:${REGISTRY_PORT}/getNodeRegistry`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch nodes from registry');
+    }
+    const data = await response.json();
+    return data.nodes; // Assuming the response structure has a 'nodes' property
+  } catch (error) {
+    console.error('Error fetching nodes from registry:', error);
+    throw error;
+  }
+}
+
+function selectRandomNodes(nodes: any[], count: number) {
+  try {
+    let shuffled = nodes.sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  } catch (error) {
+    console.error('Error selecting random nodes:', error);
+    throw error;
+  }
+}
+
+async function forwardMessageToNode(node: { nodeId: number }, message: string) {
+  try {
+    await fetch(`http://localhost:${BASE_ONION_ROUTER_PORT + node.nodeId}/message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+  } catch (error) {
+    console.error(`Error forwarding message to node ${node.nodeId}:`, error);
+    throw error;
+  }
+}
+
 export async function user(userId: number) {
   const _user = express();
   _user.use(express.json());
@@ -34,6 +71,37 @@ export async function user(userId: number) {
     res.status(200).send("success");
   });
 
+  _user.post('/sendMessage', async (req, res) => {
+    try {
+      const { message, destinationUserId } = req.body as SendMessageBody;
+
+      const nodes = await fetchNodesFromRegistry();
+      const circuit = selectRandomNodes(nodes, 3);
+
+      let encryptedMessage = message;
+      let destination = destinationUserId.toString().padStart(10, '0');
+
+      for (let i = circuit.length - 1; i >= 0; i--) {
+        const node = circuit[i];
+        const symKey = await createRandomSymmetricKey();
+
+        encryptedMessage = await symEncrypt(symKey, `${destination}${encryptedMessage}`);
+        const encryptedSymKey = await rsaEncrypt(await exportSymKey(symKey), node.pubKey);
+        encryptedMessage = `${encryptedSymKey}${encryptedMessage}`;
+
+        destination = (BASE_ONION_ROUTER_PORT + (i > 0 ? circuit[i - 1].nodeId : destinationUserId)).toString().padStart(10, '0');
+      }
+
+      await forwardMessageToNode(circuit[0], encryptedMessage);
+      lastSentMessage = message;
+
+      res.status(200).send({ message: 'Message sent successfully through the network.' });
+    } catch (error) {
+      console.error('Error in /sendMessage route:', error);
+      res.status(500).send({ error: 'Failed to send message through the network.' });
+    }
+  });
+  
   const server = _user.listen(BASE_USER_PORT + userId, () => {
     console.log(
       `User ${userId} is listening on port ${BASE_USER_PORT + userId}`
